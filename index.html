@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BS Upload">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="description" content="Erfasse Aufträge und lade Fotos direkt auf OneDrive hoch">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>BS·pic·upload</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-/5QgS6DaQvQgL/4eH7mKP1dgz80z4DnnQGXq5LqMqaS+h9JQ6wWw5M0BPa5EY3w8Y" crossorigin="anonymous" defer></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:root{
+  --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+  --accent:#e8001c;--accent-dim:rgba(232,0,28,0.12);--accent-hover:#ff1a33;
+  --text:#f2f2f2;--muted:rgba(242,242,242,0.62);--danger:#ff5c5c;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--r:14px
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+.screen{display:none;flex-direction:column;min-height:100dvh;padding:calc(var(--safe-top) + 56px) 20px calc(var(--safe-bottom) + 24px);max-width:480px;margin-inline:auto;width:100%}
+.screen.active{display:flex}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:calc(var(--safe-top) + 14px) 20px 14px;background:var(--bg);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px}
+.topbar-logo{font-size:14px;font-weight:700;letter-spacing:0.08em;color:var(--accent)}
+.topbar-title{flex:1;font-size:14px;color:var(--muted)}
+.topbar-back{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:4px 0;display:none}
+.topbar-back.visible{display:block}
+.steps-wrap{margin-bottom:28px}
+.steps{display:flex;gap:6px;margin-bottom:5px}
+.step-dot{height:3px;border-radius:2px;flex:1;background:var(--surface2);transition:background 0.3s}
+.step-dot.done{background:var(--accent)}
+.step-dot.active{background:var(--accent);box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent);animation:step-pulse 2s ease-in-out infinite}
+@keyframes step-pulse{0%,100%{opacity:1}50%{opacity:0.65}}
+.steps-labels{display:flex;gap:6px}
+.step-label{flex:1;font-size:10px;color:var(--muted);text-align:center}
+#screen-login{justify-content:center;align-items:center;padding-top:0}
+.login-box{width:100%;max-width:min(90vw,390px);display:flex;flex-direction:column;align-items:center}
+.login-logo-big{font-size:16px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.login-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:var(--text);margin-bottom:6px;text-align:center}
+.login-title span{color:var(--accent)}
+.login-sub{font-size:14px;color:var(--muted);text-align:center;margin-bottom:36px;line-height:1.5}
+.btn-login{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s}
+.btn-login:active{background:var(--accent-hover)}
+.btn-login:disabled{opacity:0.6;cursor:not-allowed}
+.btn-login-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;display:none}
+.btn-login.loading .btn-login-spinner{display:block}
+.btn-login.loading .ms-icon{display:none}
+.ms-icon{width:18px;height:18px;flex-shrink:0}
+.login-hint{margin-top:16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.login-error{margin-top:16px;padding:14px 18px;background:rgba(232,0,28,0.18);border:1.5px solid rgba(232,0,28,0.6);border-radius:var(--r);font-size:14px;font-weight:500;color:#ff8080;text-align:center;display:none}
+.login-error.visible{display:block}
+.screen-heading{font-size:20px;font-weight:700;letter-spacing:-0.4px;margin-bottom:6px}
+.screen-sub{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+.result-box{display:none;align-items:center;gap:12px;background:rgba(127,186,0,0.12);border:1.5px solid #7FBA00;border-radius:var(--r);padding:16px;margin-bottom:20px}
+.result-box.visible{display:flex}
+.result-label{font-size:12px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(127,186,0,0.8);margin-bottom:3px}
+.result-value{font-size:20px;font-weight:700;color:#7FBA00;letter-spacing:-0.3px;word-break:break-all}
+.result-clear{background:none;border:none;color:rgba(127,186,0,0.7);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0}
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tab{flex:1;padding:12px 8px;background:var(--surface);border:0.5px solid var(--border2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;-webkit-appearance:none;appearance:none;font-family:inherit}
+.tab.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.scan-area{position:relative;width:100%;aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px;z-index:1}
+#scan-video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2}
+.scan-frame{width:70%;aspect-ratio:1;position:relative}
+.scan-corner{position:absolute;width:38px;height:38px;border-color:var(--accent);border-style:solid;border-width:0}
+.scan-corner.tl{top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
+.scan-corner.tr{top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
+.scan-corner.bl{bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
+.scan-corner.br{bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
+.scan-line{position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:4px;animation:scan-sweep 2s linear infinite}
+@keyframes scan-sweep{0%{top:4%}100%{top:96%}}
+.scan-hint{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
+.scan-area.hidden{display:none}
+.camera-error-card{display:none;flex-direction:column;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 20px;text-align:center;margin-bottom:12px}
+.camera-error-card.visible{display:flex}
+.camera-error-title{font-size:16px;font-weight:600;color:var(--text)}
+.camera-error-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:260px}
+.btn-camera-settings{padding:12px 20px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
+.howto-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.howto-step{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.howto-step:last-child{border-bottom:none;padding-bottom:0}
+.howto-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.howto-text{font-size:14px;color:var(--text);line-height:1.4}
+.howto-text b{color:var(--accent)}
+.paste-row{display:flex;gap:10px;margin-bottom:8px}
+.paste-input{flex:1;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 16px;color:var(--text);font-size:16px;outline:none}
+.paste-input:focus{border-color:var(--accent)}
+.btn-paste{background:var(--accent);border:none;border-radius:var(--r);padding:14px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-paste:active{background:var(--accent-hover)}
+.paste-hint{font-size:12px;color:var(--muted);margin-bottom:0}
+.numpad-display{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color 0.2s}
+.numpad-display:active{border-color:var(--accent)}
+.numpad-value{font-size:28px;font-weight:700;letter-spacing:0.06em;color:var(--text);flex:1;word-break:break-all}
+.numpad-value.placeholder{color:var(--muted);font-size:16px;font-weight:400}
+.numpad-backspace{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:8px;flex-shrink:0}
+.numpad-collapsible{overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;max-height:400px;opacity:1}
+.numpad-collapsible.collapsed{max-height:0;opacity:0;pointer-events:none}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.numpad-key{background:var(--surface);border:0.5px solid var(--border2);border-radius:12px;padding:18px 8px;font-size:20px;font-weight:600;color:var(--text);cursor:pointer;text-align:center;transition:all 0.15s;user-select:none}
+.numpad-key:active{background:var(--accent);color:#fff;border-color:var(--accent);transform:scale(0.94)}
+.numpad-key.alpha{font-size:14px;font-weight:500;color:var(--muted)}
+.numpad-key.wide{background:var(--surface2)}
+.numpad-key.clear{color:var(--danger)}
+.numpad-edit-hint{display:none;font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
+.numpad-edit-hint.visible{display:block}
+.auftrag-pill{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(232,0,28,0.3);border-radius:100px;padding:6px 14px;font-size:14px;font-weight:600;color:var(--accent);margin-bottom:20px}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:10px;background:var(--surface2)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;border-radius:10px}
+.photo-remove{position:absolute;top:-2px;right:-2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.75);border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-remove::before{content:'';position:absolute;inset:-11px}
+.btn-add-photo-big{width:100%;padding:22px;background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;gap:14px;cursor:pointer;margin-bottom:16px;transition:all 0.2s}
+.btn-add-photo-big:active{background:var(--surface2);border-color:var(--accent)}
+.btn-add-photo-big-text{font-size:16px;font-weight:600;color:var(--text)}
+.photo-count{font-size:12px;color:var(--muted);margin-bottom:20px}
+.photo-count span{color:var(--accent);font-weight:600}
+#photo-input{display:none}
+.btn-primary{width:100%;padding:17px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.2s,transform 0.15s}
+.btn-primary:active{background:var(--accent-hover);transform:scale(0.98)}
+.btn-primary:disabled{opacity:0.3;cursor:not-allowed}
+.btn-secondary{width:100%;padding:15px;background:none;color:var(--text);border:0.5px solid var(--border2);border-radius:var(--r);font-size:16px;font-weight:500;cursor:pointer;margin-top:10px}
+.upload-status{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:40px}
+.upload-icon-wrap{width:80px;height:80px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;margin-bottom:24px;position:relative}
+.upload-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.upload-title{font-size:20px;font-weight:700;margin-bottom:8px}
+.upload-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:280px;margin-bottom:24px}
+.upload-progress{width:100%;max-width:280px;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:8px}
+.upload-progress-bar{height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width 0.4s ease;position:relative;overflow:hidden}
+.upload-progress-bar::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);animation:prog-shimmer 1.5s ease-in-out infinite}
+@keyframes prog-shimmer{to{left:130%}}
+.upload-progress-label{font-size:12px;color:var(--muted)}
+.btn-upload-cancel{margin-top:24px;padding:12px 28px;background:none;border:0.5px solid var(--border2);border-radius:var(--r);color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;transition:color 0.2s,border-color 0.2s}
+.btn-upload-cancel:hover{color:var(--text);border-color:var(--border2)}
+.success-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.success-icon{width:80px;height:80px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
+.success-folder{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 18px;margin:20px 0 32px;width:100%;max-width:300px;text-align:left}
+.success-folder-label{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px}
+.success-folder-path{font-size:14px;font-weight:600;color:var(--accent);word-break:break-all}
+.success-folder-count{font-size:12px;color:var(--muted);margin-top:4px}
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:20px;right:20px;background:#333;color:#fff;padding:14px 18px;border-radius:var(--r);font-size:14px;font-weight:500;z-index:9999;transform:translateY(120%);transition:transform 0.3s;text-align:center}
+.toast.show{transform:translateY(0)}
+.toast.success{background:#0d1a0d;border:1px solid #7FBA00;color:#7FBA00}
+.toast.error{background:#2a0a0a;border:1px solid var(--danger);color:var(--danger)}
+.version-badge{position:fixed;bottom:calc(var(--safe-bottom) + 8px);right:12px;font-size:10px;color:rgba(255,255,255,0.2);z-index:9998;pointer-events:none;letter-spacing:0.05em}
+</style>
+</head>
+<body>
+<div class="topbar" role="banner">
+  <button class="topbar-back" id="btn-back" aria-label="Zurück zur vorherigen Seite">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    Zurück
+  </button>
+  <span class="topbar-logo">BS·PIC·UPLOAD</span>
+  <span class="topbar-title" id="topbar-title"></span>
+</div>
+
+<main id="app-main" role="main">
+
+<section class="screen active" id="screen-login" aria-label="Anmeldung">
+  <div class="login-box">
+    <p class="login-logo-big">best·systems GmbH</p>
+    <h1 class="login-title">Auftrags<span>·</span>Fotos</h1>
+    <p class="login-sub">Erfasse einen Auftrag und lade<br>Fotos direkt auf OneDrive hoch.</p>
+    <button class="btn-login" id="btn-login" aria-label="Mit Microsoft anmelden">
+      <div class="btn-login-spinner"></div>
+      <svg class="ms-icon" viewBox="0 0 21 21" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+        <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+      </svg>
+      Mit Microsoft anmelden
+    </button>
+    <div class="login-error" id="login-error" role="alert" aria-live="assertive" aria-atomic="true"></div>
+    <p class="login-hint">Einmalige Anmeldung mit deinem<br>Best Systems Microsoft-Konto</p>
+  </div>
+</section>
+
+<section class="screen" id="screen-scan" aria-label="Auftragsnummer scannen">
+  <div class="steps-wrap">
+    <div class="steps" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="3">
+      <div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div>
+    </div>
+    <div class="steps-labels">
+      <span class="step-label">Scan</span>
+      <span class="step-label">Fotos</span>
+      <span class="step-label">Upload</span>
+    </div>
+  </div>
+  <h2 class="screen-heading">Auftragsnummer</h2>
+  <p class="screen-sub">Scanne, füge ein oder tippe die <strong>7-stellige</strong> Nummer.</p>
+
+  <div class="result-box" id="result-box" role="status" aria-live="polite">
+    <div style="flex:1">
+      <div class="result-label">Auftragsnummer ✓</div>
+      <div class="result-value" id="result-value">—</div>
+    </div>
+    <button class="result-clear" id="btn-result-clear" aria-label="Auftragsnummer löschen">✕</button>
+  </div>
+
+  <div class="tabs" id="scan-tabs" role="tablist" aria-label="Eingabemethode">
+    <button class="tab active" id="tab-scan" role="tab" aria-selected="true" aria-controls="tab-content-scan">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Scannen
+    </button>
+    <button class="tab" id="tab-paste" role="tab" aria-selected="false" aria-controls="tab-content-paste">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      Einfügen
+    </button>
+    <button class="tab" id="tab-numpad" role="tab" aria-selected="false" aria-controls="tab-content-numpad">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/></svg>
+      Eingabe
+    </button>
+  </div>
+
+  <div class="tab-content active" id="tab-content-scan" role="tabpanel" aria-labelledby="tab-scan">
+    <div class="scan-area" id="scan-area" role="region" aria-label="Live-Kamera-Stream für QR-Code-Scan">
+      <video id="scan-video" autoplay playsinline muted webkit-playsinline
+        aria-label="Live-Ansicht vom Kamera-Stream"
+        style="width:100%;height:100%;object-fit:cover;display:block;background:#000;"></video>
+      <canvas id="scan-canvas" style="display:none" aria-hidden="true"></canvas>
+      <div class="scan-overlay">
+        <div class="scan-frame">
+          <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
+          <div class="scan-corner bl"></div><div class="scan-corner br"></div>
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </div>
+    <div class="camera-error-card" id="camera-error-card" role="alert">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ff5c5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p class="camera-error-title" id="camera-error-title">Kamerazugriff verweigert</p>
+      <p class="camera-error-desc" id="camera-error-desc">Die App benötigt Kamerazugriff um QR-Codes zu scannen. Bitte erlaube den Zugriff in den Browser-Einstellungen.</p>
+      <button class="btn-camera-settings" id="btn-camera-settings">Kameraeinstellungen öffnen</button>
+    </div>
+    <p class="scan-hint" id="scan-hint">QR-Code im Rahmen halten</p>
+  </div>
+
+  <div class="tab-content" id="tab-content-paste" role="tabpanel" aria-labelledby="tab-paste">
+    <div class="howto-box">
+      <div class="howto-step">
+        <div class="howto-num">1</div>
+        <div class="howto-text">iPhone <b>Kamera-App</b> öffnen → QR-Code scannen</div>
+      </div>
+      <div class="howto-step">
+        <div class="howto-num">2</div>
+        <div class="howto-text">Banner antippen → Text <b>kopieren</b></div>
+      </div>
+      <div class="howto-step">
+        <div class="howto-num">3</div>
+        <div class="howto-text">Hier <b>Einfügen</b> tippen ↓</div>
+      </div>
+    </div>
+    <label for="paste-input" class="sr-only">Auftragsnummer eingeben</label>
+    <div class="paste-row">
+      <input class="paste-input" id="paste-input" type="text" placeholder="7-stellige Nr. einfügen…" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Auftragsnummer eingeben">
+      <button class="btn-paste" id="btn-paste-clipboard">Einfügen</button>
+    </div>
+    <p class="paste-hint">Oder Feld lang drücken → „Einsetzen"</p>
+  </div>
+
+  <div class="tab-content" id="tab-content-numpad" role="tabpanel" aria-labelledby="tab-numpad">
+    <label for="numpad-display-wrap" class="sr-only">Nummern-Display und Eingabe</label>
+    <div class="numpad-display" id="numpad-display-wrap">
+      <div style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div class="numpad-value placeholder" id="numpad-display">Nummer eingeben…</div>
+        <div id="numpad-counter" style="font-size:12px;color:var(--muted);flex-shrink:0" aria-live="polite">0 / 7</div>
+      </div>
+      <button class="numpad-backspace" id="btn-numpad-back" aria-label="Ziffer löschen">⌫</button>
+    </div>
+    <p class="numpad-edit-hint" id="numpad-edit-hint">Feld antippen zum Bearbeiten</p>
+    <div class="numpad-collapsible" id="numpad-collapsible">
+      <div class="numpad">
+        <button class="numpad-key" data-key="1">1</button>
+        <button class="numpad-key" data-key="2">2</button>
+        <button class="numpad-key" data-key="3">3</button>
+        <button class="numpad-key" data-key="4">4</button>
+        <button class="numpad-key" data-key="5">5</button>
+        <button class="numpad-key" data-key="6">6</button>
+        <button class="numpad-key" data-key="7">7</button>
+        <button class="numpad-key" data-key="8">8</button>
+        <button class="numpad-key" data-key="9">9</button>
+        <button class="numpad-key alpha wide" data-key="-">—</button>
+        <button class="numpad-key" data-key="0">0</button>
+        <button class="numpad-key clear wide" id="btn-numpad-clear">✕</button>
+      </div>
+      <button class="btn-primary" id="btn-numpad-confirm" disabled>Bestätigen →</button>
+    </div>
+  </div>
+
+  <div style="padding-top:8px;">
+    <button class="btn-primary" id="btn-to-photos" disabled>Fotos aufnehmen →</button>
+  </div>
+</section>
+
+<section class="screen" id="screen-photos" aria-label="Fotos aufnehmen">
+  <div class="steps-wrap">
+    <div class="steps" role="progressbar" aria-valuenow="2" aria-valuemin="1" aria-valuemax="3">
+      <div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div>
+    </div>
+    <div class="steps-labels">
+      <span class="step-label">Scan</span>
+      <span class="step-label">Fotos</span>
+      <span class="step-label">Upload</span>
+    </div>
+  </div>
+  <h2 class="screen-heading">Fotos aufnehmen</h2>
+  <div class="auftrag-pill">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+    <span id="photo-auftrag-label">—</span>
+  </div>
+  <label class="btn-add-photo-big" for="photo-input" role="button" tabindex="0">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    <span class="btn-add-photo-big-text">Foto aufnehmen / hinzufügen</span>
+  </label>
+  <input type="file" id="photo-input" accept="image/*" capture="environment" multiple aria-label="Fotodatei auswählen">
+  <div class="photo-grid" id="photo-grid" role="region" aria-label="Ausgewählte Fotos"></div>
+  <p class="photo-count" id="photo-count-text" role="status"><span id="photo-count-val">0</span> Fotos ausgewählt</p>
+  <div style="margin-top:auto;padding-top:8px;">
+    <button class="btn-primary" id="btn-upload" disabled>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      Auf OneDrive hochladen
+    </button>
+    <button class="btn-secondary" id="btn-photos-back">Zurück</button>
+  </div>
+</section>
+
+<section class="screen" id="screen-upload" aria-label="Upload läuft">
+  <div class="upload-status">
+    <div class="upload-icon-wrap">
+      <div class="upload-ring"></div>
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+    </div>
+    <h2 class="upload-title">Wird hochgeladen…</h2>
+    <p class="upload-desc" id="upload-desc">Fotos werden übertragen.</p>
+    <div class="upload-progress"><div class="upload-progress-bar" id="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div></div>
+    <p class="upload-progress-label" id="upload-progress-label">0 von 0</p>
+    <button class="btn-upload-cancel" id="btn-upload-cancel">Abbrechen</button>
+  </div>
+</section>
+
+<section class="screen" id="screen-success" aria-label="Upload erfolgreich">
+  <div class="success-wrap">
+    <div class="success-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2 class="screen-heading">Fertig!</h2>
+    <p class="screen-sub">Alle Fotos wurden erfolgreich hochgeladen.</p>
+    <div class="success-folder">
+      <div class="success-folder-label">OneDrive-Ordner</div>
+      <div class="success-folder-path" id="success-path">—</div>
+      <div class="success-folder-count" id="success-count">—</div>
+    </div>
+    <button class="btn-primary" id="btn-reset-app">Neuer Auftrag</button>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
+<div class="version-badge" id="version-badge">v2.0</div>
+
+<script src="app.js"></script>
+</body>
+</html>
