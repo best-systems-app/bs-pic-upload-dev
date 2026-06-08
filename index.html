@@ -146,7 +146,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
-  <span class="topbar-version">v5</span>
+  <span class="topbar-version">v6</span>
 </div>
 
 <main id="app-main" role="main">
@@ -331,7 +331,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge" id="version-badge">v5</div>
+<div class="version-badge" id="version-badge">v6</div>
 
 <script>
 // =====================================================================
@@ -410,8 +410,8 @@ async function doLoginInline() {
     var pkce = await genPKCEInline();
     var state = b64urlInline(crypto.getRandomValues(new Uint8Array(8)));
 
-    sessionStorage.setItem('pkce_v', pkce.verifier);
-    sessionStorage.setItem('oauth_s', state);
+    localStorage.setItem('pkce_v', pkce.verifier);
+    localStorage.setItem('oauth_s', state);
 
     setLoginDebug('Weiterleitung zu Microsoft...');
 
@@ -440,6 +440,6 @@ async function doLoginInline() {
 }
 </script>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
