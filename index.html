@@ -146,7 +146,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
-  <span class="topbar-version">v7</span>
+  <span class="topbar-version">v8</span>
 </div>
 
 <main id="app-main" role="main">
@@ -156,7 +156,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     <p class="login-logo-big">best·systems GmbH</p>
     <h1 class="login-title">Auftrags<span>·</span>Fotos</h1>
     <p class="login-sub">Erfasse einen Auftrag und lade<br>Fotos direkt auf OneDrive hoch.</p>
-    <button class="btn-login" id="btn-login" onclick="doLoginInline()" aria-label="Mit Microsoft anmelden">
+    <button class="btn-login" id="btn-login" aria-label="Mit Microsoft anmelden">
       <div class="btn-login-spinner"></div>
       <svg class="ms-icon" viewBox="0 0 21 21" fill="none" aria-hidden="true">
         <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
@@ -331,12 +331,12 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge" id="version-badge">v7</div>
+<div class="version-badge" id="version-badge">v8</div>
 
 <script>
 // =====================================================================
-// INLINE LOGIN-SCRIPT v4
-// Unabhaengig von app.js — laeuft auch wenn SW eine alte app.js cached
+// INLINE SCRIPT v8
+// Nur SW-Deregistrierung — Login-Handling vollstaendig in app.js
 // =====================================================================
 
 // SW-Deregistrierung: Alle alten Service Worker loeschen damit immer
@@ -358,88 +358,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     });
   }
 })();
-
-// Inline CONFIG (identisch mit app.js CONFIG)
-var INLINE_CONFIG = {
-  CLIENT_ID: '180e1fc6-2c2b-4a77-82e8-e3dbcd219491',
-  TENANT_ID: '175d1508-8739-4676-bb66-98aa62745feb',
-  REDIRECT: 'https://best-systems-app.github.io/bs-pic-upload-dev/',
-  SCOPES: 'Files.ReadWrite User.Read offline_access'
-};
-
-function b64urlInline(buf) {
-  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-
-async function genPKCEInline() {
-  var verifier = b64urlInline(crypto.getRandomValues(new Uint8Array(32)));
-  var hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return {
-    verifier: verifier,
-    challenge: b64urlInline(hashBuffer)
-  };
-}
-
-function setLoginDebug(msg) {
-  var el = document.getElementById('login-debug');
-  if (el) el.textContent = msg;
-}
-
-async function doLoginInline() {
-  console.log('[LOGIN] Button clicked (inline handler)');
-  setLoginDebug('Wird gestartet...');
-
-  var btn = document.getElementById('btn-login');
-  if (btn) {
-    btn.disabled = true;
-    btn.classList.add('loading');
-  }
-
-  // crypto.subtle-Verfuegbarkeit pruefen
-  if (typeof crypto === 'undefined' || !crypto.subtle) {
-    var msg = 'FEHLER: crypto.subtle nicht verfuegbar. Bitte Chrome aktualisieren oder sicherstellen dass die App ueber HTTPS geoeffnet wird.';
-    console.error('[LOGIN]', msg);
-    setLoginDebug(msg);
-    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
-    return;
-  }
-
-  try {
-    setLoginDebug('PKCE wird generiert...');
-    var pkce = await genPKCEInline();
-    var state = b64urlInline(crypto.getRandomValues(new Uint8Array(8)));
-
-    localStorage.setItem('pkce_v', pkce.verifier);
-    localStorage.setItem('oauth_s', state);
-
-    setLoginDebug('Weiterleitung zu Microsoft...');
-
-    var params = new URLSearchParams({
-      client_id: INLINE_CONFIG.CLIENT_ID,
-      response_type: 'code',
-      redirect_uri: INLINE_CONFIG.REDIRECT,
-      scope: INLINE_CONFIG.SCOPES,
-      state: state,
-      code_challenge: pkce.challenge,
-      code_challenge_method: 'S256',
-      prompt: 'select_account'
-    });
-
-    var authUrl = 'https://login.microsoftonline.com/' + INLINE_CONFIG.TENANT_ID + '/oauth2/v2.0/authorize?' + params.toString();
-    console.log('[LOGIN] Redirect zu:', authUrl);
-    setLoginDebug('Oeffne Microsoft Login...');
-
-    window.location.href = authUrl;
-  } catch (e) {
-    var errMsg = 'FEHLER: ' + (e.message || String(e));
-    console.error('[LOGIN] Exception:', e);
-    setLoginDebug(errMsg);
-    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
-  }
-}
 </script>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
