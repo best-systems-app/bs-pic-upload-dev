@@ -28,6 +28,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 .topbar-title{flex:1;font-size:14px;color:var(--muted)}
 .topbar-back{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:4px 0;display:none}
 .topbar-back.visible{display:block}
+.topbar-version{font-size:11px;color:rgba(255,255,255,0.35);flex-shrink:0;letter-spacing:0.05em}
 .steps-wrap{margin-bottom:28px}
 .steps{display:flex;gap:6px;margin-bottom:5px}
 .step-dot{height:3px;border-radius:2px;flex:1;background:var(--surface2);transition:background 0.3s}
@@ -145,6 +146,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
+  <span class="topbar-version">v1</span>
 </div>
 
 <main id="app-main" role="main">
@@ -328,7 +330,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge" id="version-badge">v2.0</div>
+<div class="version-badge" id="version-badge">v1</div>
 
 <script src="app.js"></script>
 </body>
