@@ -3,17 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BS Upload">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com">
 <meta name="theme-color" content="#0f0f0f">
 <meta name="description" content="Erfasse Aufträge und lade Fotos direkt auf OneDrive hoch">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <title>BS·pic·upload</title>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-/5QgS6DaQvQgL/4eH7mKP1dgz80z4DnnQGXq5LqMqaS+h9JQ6wWw5M0BPa5EY3w8Y" crossorigin="anonymous" defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -22,17 +17,18 @@
   --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
   --accent:#e8001c;--accent-dim:rgba(232,0,28,0.12);--accent-hover:#ff1a33;
   --text:#f2f2f2;--muted:rgba(242,242,242,0.62);--danger:#ff5c5c;
-  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--r:14px
+  --r:14px
 }
-body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min-height:100dvh;overflow-x:hidden}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
-.screen{display:none;flex-direction:column;min-height:100dvh;padding:calc(var(--safe-top) + 56px) 20px calc(var(--safe-bottom) + 24px);max-width:480px;margin-inline:auto;width:100%}
+.screen{display:none;flex-direction:column;min-height:100dvh;padding:56px 20px 24px;max-width:480px;margin-inline:auto;width:100%}
 .screen.active{display:flex}
-.topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:calc(var(--safe-top) + 14px) 20px 14px;background:var(--bg);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 20px 14px;background:var(--bg);border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:12px}
 .topbar-logo{font-size:14px;font-weight:700;letter-spacing:0.08em;color:var(--accent)}
 .topbar-title{flex:1;font-size:14px;color:var(--muted)}
 .topbar-back{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:4px 0;display:none}
 .topbar-back.visible{display:block}
+.topbar-version{font-size:12px;color:rgba(255,255,255,0.75);flex-shrink:0;letter-spacing:0.05em;font-weight:600}
 .steps-wrap{margin-bottom:28px}
 .steps{display:flex;gap:6px;margin-bottom:5px}
 .step-dot{height:3px;border-radius:2px;flex:1;background:var(--surface2);transition:background 0.3s}
@@ -69,36 +65,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .tab.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
 .tab-content{display:none}
 .tab-content.active{display:block}
-.scan-area{position:relative;width:100%;aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:#000;margin-bottom:12px;z-index:1}
-#scan-video{width:100%;height:100%;object-fit:cover;display:block;background:#000}
-.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2}
-.scan-frame{width:70%;aspect-ratio:1;position:relative}
-.scan-corner{position:absolute;width:38px;height:38px;border-color:var(--accent);border-style:solid;border-width:0}
-.scan-corner.tl{top:0;left:0;border-top-width:3px;border-left-width:3px;border-radius:4px 0 0 0}
-.scan-corner.tr{top:0;right:0;border-top-width:3px;border-right-width:3px;border-radius:0 4px 0 0}
-.scan-corner.bl{bottom:0;left:0;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 4px}
-.scan-corner.br{bottom:0;right:0;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 4px 0}
-.scan-line{position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:4px;animation:scan-sweep 2s linear infinite}
-@keyframes scan-sweep{0%{top:4%}100%{top:96%}}
 .scan-hint{font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px}
-.scan-area.hidden{display:none}
-.camera-error-card{display:none;flex-direction:column;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:28px 20px;text-align:center;margin-bottom:12px}
-.camera-error-card.visible{display:flex}
-.camera-error-title{font-size:16px;font-weight:600;color:var(--text)}
-.camera-error-desc{font-size:14px;color:var(--muted);line-height:1.5;max-width:260px}
-.btn-camera-settings{padding:12px 20px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:14px;font-weight:600;cursor:pointer}
 .howto-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:16px}
 .howto-step{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border)}
 .howto-step:last-child{border-bottom:none;padding-bottom:0}
 .howto-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .howto-text{font-size:14px;color:var(--text);line-height:1.4}
 .howto-text b{color:var(--accent)}
-.paste-row{display:flex;gap:10px;margin-bottom:8px}
-.paste-input{flex:1;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:14px 16px;color:var(--text);font-size:16px;outline:none}
-.paste-input:focus{border-color:var(--accent)}
-.btn-paste{background:var(--accent);border:none;border-radius:var(--r);padding:14px 16px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
-.btn-paste:active{background:var(--accent-hover)}
-.paste-hint{font-size:12px;color:var(--muted);margin-bottom:0}
 .numpad-display{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color 0.2s}
 .numpad-display:active{border-color:var(--accent)}
 .numpad-value{font-size:28px;font-weight:700;letter-spacing:0.06em;color:var(--text);flex:1;word-break:break-all}
@@ -149,11 +122,20 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 .success-folder-label{font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px}
 .success-folder-path{font-size:14px;font-weight:600;color:var(--accent);word-break:break-all}
 .success-folder-count{font-size:12px;color:var(--muted);margin-top:4px}
-.toast{position:fixed;bottom:calc(var(--safe-bottom) + 20px);left:20px;right:20px;background:#333;color:#fff;padding:14px 18px;border-radius:var(--r);font-size:14px;font-weight:500;z-index:9999;transform:translateY(120%);transition:transform 0.3s;text-align:center}
+.toast{position:fixed;bottom:20px;left:20px;right:20px;background:#333;color:#fff;padding:14px 18px;border-radius:var(--r);font-size:14px;font-weight:500;z-index:9999;transform:translateY(120%);transition:transform 0.3s;text-align:center}
 .toast.show{transform:translateY(0)}
 .toast.success{background:#0d1a0d;border:1px solid #7FBA00;color:#7FBA00}
 .toast.error{background:#2a0a0a;border:1px solid var(--danger);color:var(--danger)}
-.version-badge{position:fixed;bottom:calc(var(--safe-bottom) + 8px);right:12px;font-size:10px;color:rgba(255,255,255,0.2);z-index:9998;pointer-events:none;letter-spacing:0.05em}
+.version-badge{position:fixed;bottom:8px;right:12px;font-size:11px;color:rgba(255,255,255,0.55);z-index:9998;pointer-events:none;letter-spacing:0.05em;font-weight:500}
+.scanner-ready-card{display:flex;flex-direction:column;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:32px 20px;margin-bottom:16px;text-align:center}
+.scanner-icon-wrap{width:72px;height:72px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;animation:scanner-pulse 2s ease-in-out infinite}
+@keyframes scanner-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,0,28,0.25)}60%{box-shadow:0 0 0 10px rgba(232,0,28,0)}}
+.scanner-status-text{font-size:16px;font-weight:600;color:var(--text)}
+.scanner-hint-text{font-size:13px;color:var(--muted);line-height:1.5}
+.scanner-field{width:100%;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:16px;color:var(--text);font-size:20px;font-weight:700;letter-spacing:0.12em;outline:none;caret-color:var(--accent);text-align:center}
+.scanner-field:focus{border-color:var(--accent)}
+.scanner-field::placeholder{font-size:14px;font-weight:400;letter-spacing:0;color:var(--muted)}
+.scanner-chars{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;min-height:18px}
 </style>
 </head>
 <body>
@@ -164,6 +146,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
+  <span class="topbar-version">v4</span>
 </div>
 
 <main id="app-main" role="main">
@@ -173,7 +156,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     <p class="login-logo-big">best·systems GmbH</p>
     <h1 class="login-title">Auftrags<span>·</span>Fotos</h1>
     <p class="login-sub">Erfasse einen Auftrag und lade<br>Fotos direkt auf OneDrive hoch.</p>
-    <button class="btn-login" id="btn-login" aria-label="Mit Microsoft anmelden">
+    <button class="btn-login" id="btn-login" onclick="doLoginInline()" aria-label="Mit Microsoft anmelden">
       <div class="btn-login-spinner"></div>
       <svg class="ms-icon" viewBox="0 0 21 21" fill="none" aria-hidden="true">
         <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
@@ -183,6 +166,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
       </svg>
       Mit Microsoft anmelden
     </button>
+    <div id="login-debug" style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px;color:rgba(255,255,255,0.5);text-align:center;min-height:20px;"></div>
     <div class="login-error" id="login-error" role="alert" aria-live="assertive" aria-atomic="true"></div>
     <p class="login-hint">Einmalige Anmeldung mit deinem<br>Best Systems Microsoft-Konto</p>
   </div>
@@ -200,7 +184,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
     </div>
   </div>
   <h2 class="screen-heading">Auftragsnummer</h2>
-  <p class="screen-sub">Scanne, füge ein oder tippe die <strong>7-stellige</strong> Nummer.</p>
+  <p class="screen-sub">Scanne oder tippe die <strong>7-stellige</strong> Auftragsnummer.</p>
 
   <div class="result-box" id="result-box" role="status" aria-live="polite">
     <div style="flex:1">
@@ -211,64 +195,41 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
   </div>
 
   <div class="tabs" id="scan-tabs" role="tablist" aria-label="Eingabemethode">
-    <button class="tab active" id="tab-scan" role="tab" aria-selected="true" aria-controls="tab-content-scan">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      Scannen
-    </button>
-    <button class="tab" id="tab-paste" role="tab" aria-selected="false" aria-controls="tab-content-paste">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-      Einfügen
+    <button class="tab active" id="tab-scanner" role="tab" aria-selected="true" aria-controls="tab-content-scanner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="7" y1="11" x2="7" y2="16"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="17" y1="11" x2="17" y2="16"/><line x1="5" y1="6" x2="5" y2="2"/><line x1="10" y1="6" x2="10" y2="2"/><line x1="14" y1="6" x2="14" y2="2"/><line x1="19" y1="6" x2="19" y2="2"/></svg>
+      Scanner
     </button>
     <button class="tab" id="tab-numpad" role="tab" aria-selected="false" aria-controls="tab-content-numpad">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="4" height="4" rx="1"/><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="17" y="3" width="4" height="4" rx="1"/><rect x="3" y="10" width="4" height="4" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/><rect x="17" y="10" width="4" height="4" rx="1"/><rect x="3" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/></svg>
-      Eingabe
+      Manuell
     </button>
   </div>
 
-  <div class="tab-content active" id="tab-content-scan" role="tabpanel" aria-labelledby="tab-scan">
-    <div class="scan-area" id="scan-area" role="region" aria-label="Live-Kamera-Stream für QR-Code-Scan">
-      <video id="scan-video" autoplay playsinline muted webkit-playsinline
-        aria-label="Live-Ansicht vom Kamera-Stream"
-        style="width:100%;height:100%;object-fit:cover;display:block;background:#000;"></video>
-      <canvas id="scan-canvas" style="display:none" aria-hidden="true"></canvas>
-      <div class="scan-overlay">
-        <div class="scan-frame">
-          <div class="scan-corner tl"></div><div class="scan-corner tr"></div>
-          <div class="scan-corner bl"></div><div class="scan-corner br"></div>
-          <div class="scan-line"></div>
-        </div>
+  <div class="tab-content active" id="tab-content-scanner" role="tabpanel" aria-labelledby="tab-scanner">
+    <div class="scanner-ready-card" id="scanner-ready-card">
+      <div class="scanner-icon-wrap">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="7" y1="11" x2="7" y2="16"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="17" y1="11" x2="17" y2="16"/><line x1="5" y1="6" x2="5" y2="2"/><line x1="10" y1="6" x2="10" y2="2"/><line x1="14" y1="6" x2="14" y2="2"/><line x1="19" y1="6" x2="19" y2="2"/></svg>
       </div>
+      <p class="scanner-status-text" id="scanner-status">Scanner bereit</p>
+      <p class="scanner-hint-text">Scanknopf am PDA drücken</p>
     </div>
-    <div class="camera-error-card" id="camera-error-card" role="alert">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ff5c5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <p class="camera-error-title" id="camera-error-title">Kamerazugriff verweigert</p>
-      <p class="camera-error-desc" id="camera-error-desc">Die App benötigt Kamerazugriff um QR-Codes zu scannen. Bitte erlaube den Zugriff in den Browser-Einstellungen.</p>
-      <button class="btn-camera-settings" id="btn-camera-settings">Kameraeinstellungen öffnen</button>
-    </div>
-    <p class="scan-hint" id="scan-hint">QR-Code im Rahmen halten</p>
-  </div>
-
-  <div class="tab-content" id="tab-content-paste" role="tabpanel" aria-labelledby="tab-paste">
-    <div class="howto-box">
-      <div class="howto-step">
-        <div class="howto-num">1</div>
-        <div class="howto-text">iPhone <b>Kamera-App</b> öffnen → QR-Code scannen</div>
-      </div>
-      <div class="howto-step">
-        <div class="howto-num">2</div>
-        <div class="howto-text">Banner antippen → Text <b>kopieren</b></div>
-      </div>
-      <div class="howto-step">
-        <div class="howto-num">3</div>
-        <div class="howto-text">Hier <b>Einfügen</b> tippen ↓</div>
-      </div>
-    </div>
-    <label for="paste-input" class="sr-only">Auftragsnummer eingeben</label>
-    <div class="paste-row">
-      <input class="paste-input" id="paste-input" type="text" placeholder="7-stellige Nr. einfügen…" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Auftragsnummer eingeben">
-      <button class="btn-paste" id="btn-paste-clipboard">Einfügen</button>
-    </div>
-    <p class="paste-hint">Oder Feld lang drücken → „Einsetzen"</p>
+    <input
+      id="scanner-input"
+      type="tel"
+      inputmode="none"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="none"
+      spellcheck="false"
+      maxlength="30"
+      class="scanner-field"
+      aria-label="Hardware-Scanner Eingabe"
+      placeholder="Warte auf Scanner…"
+      readonly
+    >
+<!-- readonly wird in setupScannerInput() per JS entfernt sobald das Feld den Focus hat.
+     Das verhindert Soft-Keyboard auf Android-Varianten die inputmode='none' ignorieren. -->
+    <p class="scanner-chars" id="scanner-chars" aria-live="polite"></p>
   </div>
 
   <div class="tab-content" id="tab-content-numpad" role="tabpanel" aria-labelledby="tab-numpad">
@@ -370,8 +331,115 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'SF Pro Te
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge" id="version-badge">v2.0</div>
+<div class="version-badge" id="version-badge">v4</div>
 
-<script src="app.js"></script>
+<script>
+// =====================================================================
+// INLINE LOGIN-SCRIPT v4
+// Unabhaengig von app.js — laeuft auch wenn SW eine alte app.js cached
+// =====================================================================
+
+// SW-Deregistrierung: Alle alten Service Worker loeschen damit immer
+// frische Dateien vom Netzwerk geladen werden
+(function deregisterSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(r) {
+        r.unregister();
+        console.log('[SW] Deregistriert:', r.scope);
+      });
+      if (regs.length > 0) {
+        console.log('[SW] Alle alten SWs deregistriert (' + regs.length + ')');
+      } else {
+        console.log('[SW] Keine aktiven SWs gefunden');
+      }
+    }).catch(function(e) {
+      console.warn('[SW] Deregistrierung fehlgeschlagen:', e);
+    });
+  }
+})();
+
+// Inline CONFIG (identisch mit app.js CONFIG)
+var INLINE_CONFIG = {
+  CLIENT_ID: '180e1fc6-2c2b-4a77-82e8-e3dbcd219491',
+  TENANT_ID: '175d1508-8739-4676-bb66-98aa62745feb',
+  REDIRECT: 'https://best-systems-app.github.io/bs-pic-upload-dev/',
+  SCOPES: 'Files.ReadWrite User.Read offline_access'
+};
+
+function b64urlInline(buf) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function genPKCEInline() {
+  var verifier = b64urlInline(crypto.getRandomValues(new Uint8Array(32)));
+  var hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return {
+    verifier: verifier,
+    challenge: b64urlInline(hashBuffer)
+  };
+}
+
+function setLoginDebug(msg) {
+  var el = document.getElementById('login-debug');
+  if (el) el.textContent = msg;
+}
+
+async function doLoginInline() {
+  console.log('[LOGIN] Button clicked (inline handler)');
+  setLoginDebug('Wird gestartet...');
+
+  var btn = document.getElementById('btn-login');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+  }
+
+  // crypto.subtle-Verfuegbarkeit pruefen
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    var msg = 'FEHLER: crypto.subtle nicht verfuegbar. Bitte Chrome aktualisieren oder sicherstellen dass die App ueber HTTPS geoeffnet wird.';
+    console.error('[LOGIN]', msg);
+    setLoginDebug(msg);
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+    return;
+  }
+
+  try {
+    setLoginDebug('PKCE wird generiert...');
+    var pkce = await genPKCEInline();
+    var state = b64urlInline(crypto.getRandomValues(new Uint8Array(8)));
+
+    sessionStorage.setItem('pkce_v', pkce.verifier);
+    sessionStorage.setItem('oauth_s', state);
+
+    setLoginDebug('Weiterleitung zu Microsoft...');
+
+    var params = new URLSearchParams({
+      client_id: INLINE_CONFIG.CLIENT_ID,
+      response_type: 'code',
+      redirect_uri: INLINE_CONFIG.REDIRECT,
+      scope: INLINE_CONFIG.SCOPES,
+      state: state,
+      code_challenge: pkce.challenge,
+      code_challenge_method: 'S256',
+      prompt: 'select_account'
+    });
+
+    var authUrl = 'https://login.microsoftonline.com/' + INLINE_CONFIG.TENANT_ID + '/oauth2/v2.0/authorize?' + params.toString();
+    console.log('[LOGIN] Redirect zu:', authUrl);
+    setLoginDebug('Oeffne Microsoft Login...');
+
+    window.location.href = authUrl;
+  } catch (e) {
+    var errMsg = 'FEHLER: ' + (e.message || String(e));
+    console.error('[LOGIN] Exception:', e);
+    setLoginDebug(errMsg);
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+  }
+}
+</script>
+
+<script src="app.js?v=4"></script>
 </body>
 </html>
