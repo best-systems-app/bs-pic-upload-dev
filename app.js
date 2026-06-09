@@ -270,7 +270,12 @@ function switchTab(tab) {
 
   document.getElementById('tab-content-' + tab).classList.add('active');
 
-  if (tab === 'scanner') focusScannerInput();
+  if (tab === 'scanner') {
+    focusScannerInput();
+  } else {
+    const si = document.getElementById('scanner-input');
+    if (si) si.blur();
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -437,6 +442,10 @@ function setAuftrag(value) {
   _flashScannerCard('#7FBA00');
 
   if (STATE.activeTab === 'numpad') collapseNumpad();
+
+  // Tastatur wegblenden damit btn-to-photos sichtbar wird
+  const si = document.getElementById('scanner-input');
+  if (si) si.blur();
 }
 
 function _flashScannerCard(color) {
