@@ -1,6 +1,6 @@
 /**
  * BS pic upload - App.js
- * Version 9 - Multi-Foto, Scanner-Keyboard-Fix
+ * Version 14 - Multi-Foto, Scanner-Keyboard-Fix
  * Sicherheits- und Barrierefreiheits-Verbesserungen
  */
 
@@ -432,6 +432,7 @@ function setAuftrag(value) {
   document.getElementById('result-value').textContent = value;
   document.getElementById('result-box').classList.add('visible');
   document.getElementById('btn-to-photos').disabled = false;
+  document.getElementById('btn-to-photos-wrap').style.display = '';
 
   showToast('Auftrag: ' + value, 'success');
 
@@ -464,6 +465,7 @@ function resetScan() {
   STATE.auftragNummer = null;
   document.getElementById('result-box').classList.remove('visible');
   document.getElementById('btn-to-photos').disabled = true;
+  document.getElementById('btn-to-photos-wrap').style.display = 'none';
   const si = document.getElementById('scanner-input'); if (si) si.value = '';
   STATE.numpadVal = '';
   updateNumpadDisplay();
@@ -696,6 +698,7 @@ function resetApp() {
 
   document.getElementById('result-box').classList.remove('visible');
   document.getElementById('btn-to-photos').disabled = true;
+  document.getElementById('btn-to-photos-wrap').style.display = 'none';
   const si = document.getElementById('scanner-input'); if (si) si.value = '';
   updateNumpadDisplay();
   renderPhotoGrid();
