@@ -136,6 +136,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 .scanner-field:focus{border-color:var(--accent)}
 .scanner-field::placeholder{font-size:14px;font-weight:400;letter-spacing:0;color:var(--muted)}
 .scanner-chars{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;min-height:18px}
+.prefix-selector{display:flex;gap:8px;margin-bottom:14px}
+.prefix-btn{flex:1;padding:12px 8px;background:var(--surface);border:1.5px solid var(--border2);border-radius:10px;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;-webkit-appearance:none;appearance:none;font-family:inherit;letter-spacing:0.03em}
+.prefix-btn.active{background:rgba(127,186,0,0.12);border-color:#7FBA00;color:#7FBA00}
+.prefix-btn:active{opacity:0.75}
 </style>
 </head>
 <body>
@@ -146,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
-  <span class="topbar-version">v10</span>
+  <span class="topbar-version">v11</span>
 </div>
 
 <main id="app-main" role="main">
@@ -215,20 +219,18 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     </div>
     <input
       id="scanner-input"
-      type="text"
+      type="tel"
       inputmode="none"
       autocomplete="off"
       autocorrect="off"
       autocapitalize="none"
       spellcheck="false"
-      maxlength="30"
+      maxlength="50"
       class="scanner-field"
       aria-label="Hardware-Scanner Eingabe"
       placeholder="Warte auf Scanner…"
       readonly
     >
-<!-- readonly wird in setupScannerInput() per JS entfernt sobald das Feld den Focus hat.
-     Das verhindert Soft-Keyboard auf Android-Varianten die inputmode='none' ignorieren. -->
     <p class="scanner-chars" id="scanner-chars" aria-live="polite"></p>
   </div>
 
@@ -243,6 +245,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     </div>
     <p class="numpad-edit-hint" id="numpad-edit-hint">Feld antippen zum Bearbeiten</p>
     <div class="numpad-collapsible" id="numpad-collapsible">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Präfix wählen:</p>
+      <div class="prefix-selector">
+        <button class="prefix-btn active" id="prefix-ab" data-prefix="AB">AB</button>
+        <button class="prefix-btn" id="prefix-intabi" data-prefix="IntABI">IntABI</button>
+      </div>
       <div class="numpad">
         <button class="numpad-key" data-key="1">1</button>
         <button class="numpad-key" data-key="2">2</button>
@@ -331,11 +338,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge" id="version-badge">v10</div>
+<div class="version-badge" id="version-badge">v11</div>
 
 <script>
 // =====================================================================
-// INLINE SCRIPT v10
+// INLINE SCRIPT v11
 // Nur SW-Deregistrierung — Login-Handling vollstaendig in app.js
 // =====================================================================
 
@@ -360,6 +367,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 })();
 </script>
 
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
