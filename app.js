@@ -373,43 +373,33 @@ function setupScannerInput() {
   const input = document.getElementById('scanner-input');
   if (!input) return;
 
-  let scanBuffer = '';
-
   input.addEventListener('focus', () => {
+    input.removeAttribute('readonly');
     const status = document.getElementById('scanner-status');
     if (status) status.textContent = 'Bereit – jetzt scannen';
   });
 
   input.addEventListener('blur', () => {
+    input.setAttribute('readonly', '');
     const status = document.getElementById('scanner-status');
     if (status) status.textContent = 'Scanner bereit';
   });
 
+  input.addEventListener('input', () => {
+    const val = sanitizeScanValue(input.value);
+    input.value = val;
+    const chars = document.getElementById('scanner-chars');
+    if (chars) chars.textContent = val ? val.length + ' Zeichen' : '';
+  });
+
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === 'Tab') {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      const val = sanitizeScanValue(scanBuffer);
-      scanBuffer = '';
+      const val = sanitizeScanValue(input.value);
       input.value = '';
       const chars = document.getElementById('scanner-chars');
       if (chars) chars.textContent = '';
       if (val) setAuftrag(val);
-      return;
-    }
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      scanBuffer = scanBuffer.slice(0, -1);
-      input.value = scanBuffer;
-      const chars = document.getElementById('scanner-chars');
-      if (chars) chars.textContent = scanBuffer.length ? scanBuffer.length + ' Zeichen' : '';
-      return;
-    }
-    if (e.key.length === 1) {
-      e.preventDefault();
-      scanBuffer += e.key;
-      input.value = scanBuffer;
-      const chars = document.getElementById('scanner-chars');
-      if (chars) chars.textContent = scanBuffer.length + ' Zeichen';
     }
   });
 
