@@ -19,7 +19,8 @@ const CONFIG = {
   BASE_FOLDER: 'Auftraege-BS-pic-upload',
 
   // Validierung
-  AUFTRAG_LENGTH: 7,
+  AUFTRAG_MIN: 1,
+  AUFTRAG_MAX: 20,
   MAX_PHOTOS: 20,
   MAX_FILE_MB: 15,
 
@@ -276,22 +277,19 @@ function switchTab(tab) {
 // ═════════════════════════════════════════════════════════════════════
 
 function numpadKey(k) {
-  if (STATE.numpadVal.length >= CONFIG.AUFTRAG_LENGTH) return;
+  if (STATE.numpadVal.length >= CONFIG.AUFTRAG_MAX) return;
 
   STATE.numpadVal += k;
   updateNumpadDisplay();
 
-  const ok = STATE.numpadVal.length === CONFIG.AUFTRAG_LENGTH;
-  document.getElementById('btn-numpad-confirm').disabled = !ok;
-
-  if (ok) setAuftrag(STATE.numpadVal);
+  document.getElementById('btn-numpad-confirm').disabled = STATE.numpadVal.length < CONFIG.AUFTRAG_MIN;
 }
 
 function numpadBack() {
   STATE.numpadVal = STATE.numpadVal.slice(0, -1);
   updateNumpadDisplay();
 
-  document.getElementById('btn-numpad-confirm').disabled = STATE.numpadVal.length !== CONFIG.AUFTRAG_LENGTH;
+  document.getElementById('btn-numpad-confirm').disabled = STATE.numpadVal.length < CONFIG.AUFTRAG_MIN;
 
   if (STATE.numpadVal.length === 0) expandNumpad();
 }
@@ -311,14 +309,14 @@ function updateNumpadDisplay() {
     el.textContent = STATE.numpadVal;
     el.classList.remove('placeholder');
     if (counter) {
-      counter.textContent = `${STATE.numpadVal.length} / ${CONFIG.AUFTRAG_LENGTH}`;
-      counter.style.color = STATE.numpadVal.length === CONFIG.AUFTRAG_LENGTH ? '#7FBA00' : 'var(--muted)';
+      counter.textContent = STATE.numpadVal.length + ' Stellen';
+      counter.style.color = 'var(--muted)';
     }
   } else {
     el.textContent = 'Nummer eingeben…';
     el.classList.add('placeholder');
     if (counter) {
-      counter.textContent = `0 / ${CONFIG.AUFTRAG_LENGTH}`;
+      counter.textContent = '0 Stellen';
       counter.style.color = 'var(--muted)';
     }
   }
@@ -339,7 +337,7 @@ function expandNumpad() {
 }
 
 function confirmNumpad() {
-  if (STATE.numpadVal.length === CONFIG.AUFTRAG_LENGTH) {
+  if (STATE.numpadVal.length >= CONFIG.AUFTRAG_MIN) {
     setAuftrag(STATE.numpadVal);
   }
 }
@@ -389,15 +387,7 @@ function setupScannerInput() {
     const val = sanitizeScanValue(input.value);
     input.value = val;
     const chars = document.getElementById('scanner-chars');
-    if (chars) chars.textContent = val ? val.length + ' / ' + CONFIG.AUFTRAG_LENGTH + ' Zeichen' : '';
-
-    if (val.length >= CONFIG.AUFTRAG_LENGTH) {
-      const code = val.slice(0, CONFIG.AUFTRAG_LENGTH);
-      input.value = '';
-      if (chars) chars.textContent = '';
-      _scanFiredByInput = true;  // naechsten Enter-keydown ignorieren
-      setAuftrag(code);
-    }
+    if (chars) chars.textContent = val ? val.length + ' Zeichen' : '';
   });
 
   input.addEventListener('keydown', (e) => {
@@ -437,13 +427,6 @@ function setAuftrag(value) {
   value = value.trim();
 
   if (!value) return;
-
-  if (value.length !== CONFIG.AUFTRAG_LENGTH) {
-    showToast(`Auftragsnummer muss genau ${CONFIG.AUFTRAG_LENGTH} Stellen haben (aktuell: ${value.length})`, 'error');
-    // Kurzes rotes Blinken bei Fehler
-    _flashScannerCard('var(--danger)');
-    return;
-  }
 
   STATE.auftragNummer = value;
 
