@@ -39,6 +39,7 @@ const STATE = {
   numpadVal: '',
   activeTab: 'scanner',
   numpadExpanded: true,
+  prefix: 'AB',
   uploadAbortController: null
 };
 
@@ -338,8 +339,15 @@ function expandNumpad() {
 
 function confirmNumpad() {
   if (STATE.numpadVal.length >= CONFIG.AUFTRAG_MIN) {
-    setAuftrag(STATE.numpadVal);
+    setAuftrag(STATE.prefix + STATE.numpadVal);
   }
+}
+
+function selectPrefix(p) {
+  STATE.prefix = p;
+  document.querySelectorAll('.prefix-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.prefix === p);
+  });
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -365,55 +373,51 @@ function setupScannerInput() {
   const input = document.getElementById('scanner-input');
   if (!input) return;
 
+  let scanBuffer = '';
+
   input.addEventListener('focus', () => {
-    // readonly entfernen damit Scanner-Input ankommen kann,
-    // inputmode='none' unterdrueckt die Soft-Tastatur bei unterstuetzten Chrome-Versionen,
-    // readonly war der Fallback fuer aeltere/OEM-Versionen
-    input.removeAttribute('readonly');
     const status = document.getElementById('scanner-status');
     if (status) status.textContent = 'Bereit – jetzt scannen';
   });
 
   input.addEventListener('blur', () => {
-    // readonly wieder setzen damit beim naechsten Focus keine Tastatur erscheint
-    input.setAttribute('readonly', '');
     const status = document.getElementById('scanner-status');
     if (status) status.textContent = 'Scanner bereit';
   });
 
-  let _scanFiredByInput = false;
-
-  input.addEventListener('input', () => {
-    const val = sanitizeScanValue(input.value);
-    input.value = val;
-    const chars = document.getElementById('scanner-chars');
-    if (chars) chars.textContent = val ? val.length + ' Zeichen' : '';
-  });
-
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
-      if (_scanFiredByInput) {
-        // input-Handler hat bereits ausgeloest, Enter ist nur der AUTOENT-Suffix
-        _scanFiredByInput = false;
-        return;
-      }
-      const val = sanitizeScanValue(input.value);
+      const val = sanitizeScanValue(scanBuffer);
+      scanBuffer = '';
       input.value = '';
       const chars = document.getElementById('scanner-chars');
       if (chars) chars.textContent = '';
       if (val) setAuftrag(val);
+      return;
+    }
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      scanBuffer = scanBuffer.slice(0, -1);
+      input.value = scanBuffer;
+      const chars = document.getElementById('scanner-chars');
+      if (chars) chars.textContent = scanBuffer.length ? scanBuffer.length + ' Zeichen' : '';
+      return;
+    }
+    if (e.key.length === 1) {
+      e.preventDefault();
+      scanBuffer += e.key;
+      input.value = scanBuffer;
+      const chars = document.getElementById('scanner-chars');
+      if (chars) chars.textContent = scanBuffer.length + ' Zeichen';
     }
   });
 
-  // Touch auf leerem Bereich im Scanner-Tab: Focus zurueck zum Input
   const scanCard = document.getElementById('tab-content-scanner');
   if (scanCard) {
     scanCard.addEventListener('touchend', (e) => {
-      // Nicht eingreifen wenn User einen Button/Tab antippt
       const tag = e.target.tagName;
       if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT') return;
-      // Focus zurueck zum Scanner-Input
       focusScannerInput();
     });
   }
@@ -468,6 +472,7 @@ function resetScan() {
   expandNumpad();
 
   if (STATE.activeTab === 'scanner') focusScannerInput();
+  selectPrefix('AB');
 }
 
 function goToPhotos() {
@@ -735,6 +740,11 @@ function setupEventListeners() {
   // Numpad keys
   document.querySelectorAll('.numpad-key[data-key]').forEach(btn => {
     btn.addEventListener('click', () => numpadKey(btn.dataset.key));
+  });
+
+  // Prefix buttons
+  document.querySelectorAll('.prefix-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { selectPrefix(btn.dataset.prefix); });
   });
 
   // Navigation
