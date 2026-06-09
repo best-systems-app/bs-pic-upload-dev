@@ -1,6 +1,6 @@
 /**
  * BS pic upload - App.js
- * Version 14 - Multi-Foto, Scanner-Keyboard-Fix
+ * Version 15 - Multi-Foto, Scanner-Keyboard-Fix
  * Sicherheits- und Barrierefreiheits-Verbesserungen
  */
 
