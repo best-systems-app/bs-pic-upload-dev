@@ -150,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
-  <span class="topbar-version">v13</span>
+  <span class="topbar-version">v14</span>
 </div>
 
 <main id="app-main" role="main">
@@ -268,7 +268,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     </div>
   </div>
 
-  <div style="padding-top:8px;">
+  <div id="btn-to-photos-wrap" style="padding-top:8px;display:none">
     <button class="btn-primary" id="btn-to-photos" disabled>Fotos aufnehmen →</button>
   </div>
 </section>
@@ -293,7 +293,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     <span class="btn-add-photo-big-text">Foto aufnehmen / hinzufügen</span>
   </label>
-  <input type="file" id="photo-input" accept="image/*" multiple aria-label="Fotodatei auswählen">
+  <input type="file" id="photo-input" accept="image/*" capture="environment" multiple aria-label="Fotodatei auswählen">
   <div class="photo-grid" id="photo-grid" role="region" aria-label="Ausgewählte Fotos"></div>
   <p class="photo-count" id="photo-count-text" role="status"><span id="photo-count-val">0</span> Fotos ausgewählt</p>
   <div style="margin-top:auto;padding-top:8px;">
@@ -338,11 +338,11 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
-<div class="version-badge" id="version-badge">v13</div>
+<div class="version-badge" id="version-badge">v14</div>
 
 <script>
 // =====================================================================
-// INLINE SCRIPT v13
+// INLINE SCRIPT v14
 // Nur SW-Deregistrierung — Login-Handling vollstaendig in app.js
 // =====================================================================
 
@@ -367,6 +367,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 })();
 </script>
 
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>
