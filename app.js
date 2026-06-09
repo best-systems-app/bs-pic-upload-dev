@@ -1,6 +1,6 @@
 /**
  * BS pic upload - App.js
- * Überarbeitete Version 2.0 mit Event-Listeners statt inline Handler
+ * Version 9 - Multi-Foto, Scanner-Keyboard-Fix
  * Sicherheits- und Barrierefreiheits-Verbesserungen
  */
 
