@@ -1,6 +1,6 @@
 /**
  * BS pic upload - App.js
- * Version 15 - Multi-Foto, Scanner-Keyboard-Fix
+ * Version 18 - SharePoint Upload
  * Sicherheits- und Barrierefreiheits-Verbesserungen
  */
 
@@ -13,10 +13,12 @@ const CONFIG = {
   CLIENT_ID: '180e1fc6-2c2b-4a77-82e8-e3dbcd219491',
   TENANT_ID: '175d1508-8739-4676-bb66-98aa62745feb',
   REDIRECT: 'https://best-systems-app.github.io/bs-pic-upload-dev/',
-  SCOPES: 'Files.ReadWrite User.Read offline_access',
+  SCOPES: 'Files.ReadWrite.All User.Read offline_access',
 
-  // OneDrive
-  BASE_FOLDER: 'Auftraege-BS-pic-upload',
+  // SharePoint
+  SP_HOST: 'bestsystemsvienna.sharepoint.com',
+  SP_SITE: 'BestSystems-Europa',
+  SP_FOLDER: 'BS-PIC-UPLOADER',
 
   // Validierung
   AUFTRAG_MIN: 1,
@@ -142,6 +144,7 @@ async function handleCallback() {
     if (data.access_token) {
       // ⚠️ Sicherheitshinweis: Tokens in localStorage sind anfällig für XSS
       // Für Production sollte ein Backend-Proxy oder HttpOnly Cookies verwendet werden
+      localStorage.removeItem('bs_sp_drive');
       localStorage.setItem('bs_at', data.access_token);
       localStorage.setItem('bs_rt', data.refresh_token || '');
       localStorage.setItem('bs_exp', Date.now() + (data.expires_in - 60) * 1000);
@@ -581,7 +584,7 @@ async function startUpload() {
     return;
   }
 
-  const folderPath = `${CONFIG.BASE_FOLDER}/${STATE.auftragNummer}`;
+  const folderPath = STATE.auftragNummer;
   const total = STATE.photos.length;
   let done = 0;
 
@@ -589,7 +592,7 @@ async function startUpload() {
   const label = document.getElementById('upload-progress-label');
   const progressBar = document.querySelector('[role="progressbar"]');
 
-  document.getElementById('upload-desc').textContent = 'Ordner: ' + folderPath;
+  document.getElementById('upload-desc').textContent = 'SharePoint: ' + CONFIG.SP_FOLDER + '/' + folderPath;
   label.textContent = `0 von ${total}`;
 
   try {
@@ -614,7 +617,7 @@ async function startUpload() {
     }
 
     const photoWord = total === 1 ? 'Foto' : 'Fotos';
-    document.getElementById('success-path').textContent = `OneDrive / ${folderPath}`;
+    document.getElementById('success-path').textContent = 'SharePoint / ' + CONFIG.SP_FOLDER + '/' + folderPath;
     document.getElementById('success-count').textContent = `${total} ${photoWord} hochgeladen`;
 
     navigate('success');
@@ -638,55 +641,68 @@ function cancelUpload() {
   }
 }
 
-async function ensureFolder(token, path) {
-  const parts = path.split('/');
-  let current = '';
+async function resolveDriveId(token) {
+  const cached = localStorage.getItem('bs_sp_drive');
+  if (cached) return cached;
 
-  for (const part of parts) {
-    current = current ? `${current}/${part}` : part;
+  const siteResp = await fetch(
+    'https://graph.microsoft.com/v1.0/sites/' + CONFIG.SP_HOST + ':/sites/' + CONFIG.SP_SITE,
+    { headers: { Authorization: 'Bearer ' + token } }
+  );
+  const site = await siteResp.json();
+  if (!site.id) throw new Error('SharePoint-Site nicht erreichbar: ' + (site.error && site.error.message || JSON.stringify(site)));
 
-    const check = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${current}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  const driveResp = await fetch(
+    'https://graph.microsoft.com/v1.0/sites/' + site.id + '/drive',
+    { headers: { Authorization: 'Bearer ' + token } }
+  );
+  const drive = await driveResp.json();
+  if (!drive.id) throw new Error('SharePoint-Drive nicht gefunden');
 
+  localStorage.setItem('bs_sp_drive', drive.id);
+  return drive.id;
+}
+
+async function ensureFolder(token, auftragNr) {
+  const driveId = await resolveDriveId(token);
+  const paths = [CONFIG.SP_FOLDER, CONFIG.SP_FOLDER + '/' + auftragNr];
+
+  for (const p of paths) {
+    const check = await fetch(
+      'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + p,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
     if (check.status === 404) {
-      const pp = current.split('/');
-      pp.pop();
-      const parentPath = pp.length ? `root:/${pp.join('/')}:/children` : 'root/children';
+      const segments = p.split('/');
+      const name = segments.pop();
+      const parentPath = segments.length
+        ? 'root:/' + segments.join('/') + ':/children'
+        : 'root/children';
 
       const createResp = await fetch(
-        `https://graph.microsoft.com/v1.0/me/drive/${parentPath}`,
+        'https://graph.microsoft.com/v1.0/drives/' + driveId + '/' + parentPath,
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: part,
-            folder: {},
-            '@microsoft.graph.conflictBehavior': 'rename'
-          })
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, folder: {}, '@microsoft.graph.conflictBehavior': 'rename' })
         }
       );
-
       if (!createResp.ok) {
         const err = await createResp.json().catch(() => ({}));
-        throw new Error(err.error?.message || createResp.statusText);
+        throw new Error((err.error && err.error.message) || createResp.statusText);
       }
     }
   }
 }
 
-async function uploadFile(token, folderPath, filename, file, signal) {
-  const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${folderPath}/${filename}:/content`;
+async function uploadFile(token, auftragNr, filename, file, signal) {
+  const driveId = await resolveDriveId(token);
+  const path = CONFIG.SP_FOLDER + '/' + auftragNr + '/' + filename;
+  const url = 'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + path + ':/content';
 
   const resp = await fetch(url, {
     method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': file.type || 'image/jpeg'
-    },
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': file.type || 'image/jpeg' },
     body: file,
     signal
   });
