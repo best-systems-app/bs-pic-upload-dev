@@ -427,6 +427,12 @@ function setAuftrag(value) {
 
   if (!value) return;
 
+  if (value.toUpperCase().startsWith('LI')) {
+    showToast('LI-Nummern: kein Foto-Upload möglich', 'error');
+    _flashScannerCard('var(--danger)');
+    return;
+  }
+
   STATE.auftragNummer = value;
 
   document.getElementById('result-value').textContent = value;
