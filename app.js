@@ -713,6 +713,16 @@ async function uploadFile(token, auftragNr, filename, file, signal) {
   }
 }
 
+function doLogout() {
+  localStorage.removeItem('bs_at');
+  localStorage.removeItem('bs_rt');
+  localStorage.removeItem('bs_exp');
+  localStorage.removeItem('bs_sp_drive');
+  sessionStorage.clear();
+  document.getElementById('btn-logout').classList.remove('visible');
+  showScreen('login');
+}
+
 function resetApp() {
   STATE.auftragNummer = null;
   STATE.photos = [];
@@ -794,6 +804,7 @@ function setupEventListeners() {
 
   // Success
   document.getElementById('btn-reset-app').addEventListener('click', resetApp);
+  document.getElementById('btn-logout').addEventListener('click', doLogout);
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -809,6 +820,7 @@ function setupEventListeners() {
     const ok = await handleCallback();
     if (ok) {
       STATE.navHistory = ['login', 'scan'];
+      document.getElementById('btn-logout').classList.add('visible');
       showScreen('scan');
       setupScanScreen();
       return;
@@ -819,6 +831,7 @@ function setupEventListeners() {
   const token = await getToken();
   if (token) {
     STATE.navHistory = ['login', 'scan'];
+    document.getElementById('btn-logout').classList.add('visible');
     showScreen('scan');
     setupScanScreen();
   } else {
