@@ -150,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   </button>
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
-  <span class="topbar-version">v15</span>
+  <span class="topbar-version">v16</span>
 </div>
 
 <main id="app-main" role="main">
@@ -196,6 +196,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
       <div class="result-value" id="result-value">—</div>
     </div>
     <button class="result-clear" id="btn-result-clear" aria-label="Auftragsnummer löschen">✕</button>
+  </div>
+
+  <div id="btn-to-photos-wrap" style="padding-bottom:12px;display:none">
+    <button class="btn-primary" id="btn-to-photos" disabled>Fotos aufnehmen →</button>
   </div>
 
   <div class="tabs" id="scan-tabs" role="tablist" aria-label="Eingabemethode">
@@ -268,9 +272,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
     </div>
   </div>
 
-  <div id="btn-to-photos-wrap" style="padding-top:8px;display:none">
-    <button class="btn-primary" id="btn-to-photos" disabled>Fotos aufnehmen →</button>
-  </div>
 </section>
 
 <section class="screen" id="screen-photos" aria-label="Fotos aufnehmen">
@@ -341,7 +342,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 
 <script>
 // =====================================================================
-// INLINE SCRIPT v15
+// INLINE SCRIPT v16
 // Nur SW-Deregistrierung — Login-Handling vollstaendig in app.js
 // =====================================================================
 
@@ -366,6 +367,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 })();
 </script>
 
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>
