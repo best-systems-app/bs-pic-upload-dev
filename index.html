@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com; base-uri 'self'; object-src 'none'; form-action 'none'">
 <meta name="theme-color" content="#0f0f0f">
 <meta name="description" content="Erfasse Aufträge und lade Fotos direkt auf OneDrive hoch">
 <link rel="manifest" href="manifest.json">
@@ -153,7 +153,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
   <span class="topbar-logo">BS·PIC·UPLOAD</span>
   <span class="topbar-title" id="topbar-title"></span>
   <button class="topbar-logout" id="btn-logout" aria-label="Abmelden">Abmelden</button>
-  <span class="topbar-version">v21</span>
+  <span class="topbar-version">v22</span>
 </div>
 
 <main id="app-main" role="main">
@@ -343,33 +343,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;min
 
 <div class="toast" id="toast" role="status" aria-live="assertive" aria-atomic="true"></div>
 
-<script>
-// =====================================================================
-// INLINE SCRIPT v18
-// Nur SW-Deregistrierung — Login-Handling vollstaendig in app.js
-// =====================================================================
-
-// SW-Deregistrierung: Alle alten Service Worker loeschen damit immer
-// frische Dateien vom Netzwerk geladen werden
-(function deregisterSW() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(regs) {
-      regs.forEach(function(r) {
-        r.unregister();
-        console.log('[SW] Deregistriert:', r.scope);
-      });
-      if (regs.length > 0) {
-        console.log('[SW] Alle alten SWs deregistriert (' + regs.length + ')');
-      } else {
-        console.log('[SW] Keine aktiven SWs gefunden');
-      }
-    }).catch(function(e) {
-      console.warn('[SW] Deregistrierung fehlgeschlagen:', e);
-    });
-  }
-})();
-</script>
-
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>
