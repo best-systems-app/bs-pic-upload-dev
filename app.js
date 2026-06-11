@@ -18,7 +18,7 @@ const CONFIG = {
   // SharePoint
   SP_HOST: 'bestsystemsvienna.sharepoint.com',
   SP_SITE: 'BestSystems-Europa',
-  SP_FOLDER: 'BS-PIC-UPLOADER',
+  SP_LIBRARY: 'AuftragBilder',
 
   // Validierung
   AUFTRAG_MIN: 1,
@@ -592,7 +592,7 @@ async function startUpload() {
   const label = document.getElementById('upload-progress-label');
   const progressBar = document.querySelector('[role="progressbar"]');
 
-  document.getElementById('upload-desc').textContent = 'SharePoint: ' + CONFIG.SP_FOLDER + '/' + folderPath;
+  document.getElementById('upload-desc').textContent = 'SharePoint: ' + CONFIG.SP_LIBRARY + '/' + folderPath;
   label.textContent = `0 von ${total}`;
 
   try {
@@ -617,7 +617,7 @@ async function startUpload() {
     }
 
     const photoWord = total === 1 ? 'Foto' : 'Fotos';
-    document.getElementById('success-path').textContent = 'SharePoint / ' + CONFIG.SP_FOLDER + '/' + folderPath;
+    document.getElementById('success-path').textContent = 'SharePoint / ' + CONFIG.SP_LIBRARY + '/' + folderPath;
     document.getElementById('success-count').textContent = `${total} ${photoWord} hochgeladen`;
 
     navigate('success');
@@ -652,12 +652,13 @@ async function resolveDriveId(token) {
   const site = await siteResp.json();
   if (!site.id) throw new Error('SharePoint-Site nicht erreichbar: ' + (site.error && site.error.message || JSON.stringify(site)));
 
-  const driveResp = await fetch(
-    'https://graph.microsoft.com/v1.0/sites/' + site.id + '/drive',
+  const drivesResp = await fetch(
+    'https://graph.microsoft.com/v1.0/sites/' + site.id + '/drives',
     { headers: { Authorization: 'Bearer ' + token } }
   );
-  const drive = await driveResp.json();
-  if (!drive.id) throw new Error('SharePoint-Drive nicht gefunden');
+  const drivesData = await drivesResp.json();
+  const drive = (drivesData.value || []).find(d => d.name === CONFIG.SP_LIBRARY);
+  if (!drive) throw new Error('Bibliothek "' + CONFIG.SP_LIBRARY + '" nicht gefunden');
 
   localStorage.setItem('bs_sp_drive', drive.id);
   return drive.id;
@@ -665,39 +666,29 @@ async function resolveDriveId(token) {
 
 async function ensureFolder(token, auftragNr) {
   const driveId = await resolveDriveId(token);
-  const paths = [CONFIG.SP_FOLDER, CONFIG.SP_FOLDER + '/' + auftragNr];
-
-  for (const p of paths) {
-    const check = await fetch(
-      'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + p,
-      { headers: { Authorization: 'Bearer ' + token } }
-    );
-    if (check.status === 404) {
-      const segments = p.split('/');
-      const name = segments.pop();
-      const parentPath = segments.length
-        ? 'root:/' + segments.join('/') + ':/children'
-        : 'root/children';
-
-      const createResp = await fetch(
-        'https://graph.microsoft.com/v1.0/drives/' + driveId + '/' + parentPath,
-        {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, folder: {}, '@microsoft.graph.conflictBehavior': 'rename' })
-        }
-      );
-      if (!createResp.ok) {
-        const err = await createResp.json().catch(() => ({}));
-        throw new Error((err.error && err.error.message) || createResp.statusText);
+  const check = await fetch(
+    'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + auftragNr,
+    { headers: { Authorization: 'Bearer ' + token } }
+  );
+  if (check.status === 404) {
+    const createResp = await fetch(
+      'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root/children',
+      {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: auftragNr, folder: {}, '@microsoft.graph.conflictBehavior': 'rename' })
       }
+    );
+    if (!createResp.ok) {
+      const err = await createResp.json().catch(() => ({}));
+      throw new Error((err.error && err.error.message) || createResp.statusText);
     }
   }
 }
 
 async function uploadFile(token, auftragNr, filename, file, signal) {
   const driveId = await resolveDriveId(token);
-  const path = CONFIG.SP_FOLDER + '/' + auftragNr + '/' + filename;
+  const path = auftragNr + '/' + filename;
   const url = 'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + path + ':/content';
 
   const resp = await fetch(url, {
