@@ -18,7 +18,7 @@ const CONFIG = {
   // SharePoint
   SP_HOST: 'bestsystemsvienna.sharepoint.com',
   SP_SITE: 'BestSystems-Europa',
-  SP_LIBRARY: 'AuftragBilder',
+  SP_LIBRARY: 'Auftrag-Bilder',
 
   // Validierung
   AUFTRAG_MIN: 1,
