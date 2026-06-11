@@ -1,8 +1,13 @@
 /**
  * BS pic upload - App.js
- * Version 18 - SharePoint Upload
- * Sicherheits- und Barrierefreiheits-Verbesserungen
+ * Version 22 - Security Update
  */
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  }).catch(() => {});
+}
 
 // ═════════════════════════════════════════════════════════════════════
 // KONSTANTEN & KONFIGURATION
@@ -142,12 +147,10 @@ async function handleCallback() {
     const data = await resp.json();
 
     if (data.access_token) {
-      // ⚠️ Sicherheitshinweis: Tokens in localStorage sind anfällig für XSS
-      // Für Production sollte ein Backend-Proxy oder HttpOnly Cookies verwendet werden
       localStorage.removeItem('bs_sp_drive');
-      localStorage.setItem('bs_at', data.access_token);
+      sessionStorage.setItem('bs_at', data.access_token);
+      sessionStorage.setItem('bs_exp', Date.now() + (data.expires_in - 60) * 1000);
       localStorage.setItem('bs_rt', data.refresh_token || '');
-      localStorage.setItem('bs_exp', Date.now() + (data.expires_in - 60) * 1000);
 
       window.history.replaceState({}, '', CONFIG.REDIRECT);
       return true;
@@ -169,10 +172,10 @@ function showError(message) {
 }
 
 async function getToken() {
-  const exp = parseInt(localStorage.getItem('bs_exp') || '0');
+  const exp = parseInt(sessionStorage.getItem('bs_exp') || '0');
 
   if (Date.now() < exp) {
-    return localStorage.getItem('bs_at');
+    return sessionStorage.getItem('bs_at');
   }
 
   const rt = localStorage.getItem('bs_rt');
@@ -198,8 +201,8 @@ async function getToken() {
     const data = await resp.json();
 
     if (data.access_token) {
-      localStorage.setItem('bs_at', data.access_token);
-      localStorage.setItem('bs_exp', Date.now() + (data.expires_in - 60) * 1000);
+      sessionStorage.setItem('bs_at', data.access_token);
+      sessionStorage.setItem('bs_exp', Date.now() + (data.expires_in - 60) * 1000);
       if (data.refresh_token) localStorage.setItem('bs_rt', data.refresh_token);
       return data.access_token;
     }
@@ -436,6 +439,12 @@ function setAuftrag(value) {
     return;
   }
 
+  if (!/^[A-Za-z0-9._\-]{1,40}$/.test(value)) {
+    showToast('Ungültige Auftragsnummer (nur Buchstaben, Ziffern, . - _)', 'error');
+    _flashScannerCard('var(--danger)');
+    return;
+  }
+
   STATE.auftragNummer = value;
 
   document.getElementById('result-value').textContent = value;
@@ -506,6 +515,11 @@ function addPhotos(input) {
         showToast(`Mehr als ${CONFIG.MAX_PHOTOS} Fotos — Upload kann sehr lange dauern`, 'error');
         warnedLimit = true;
       }
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      showToast(`"${file.name}" ist kein Bild`, 'error');
       return;
     }
 
@@ -604,7 +618,8 @@ async function startUpload() {
       }
 
       const p = STATE.photos[i];
-      const ext = (p.file.name.split('.').pop() || 'jpg').toLowerCase();
+      const rawExt = (p.file.name.split('.').pop() || 'jpg').toLowerCase();
+      const ext = ['jpg','jpeg','png','heic','heif','webp'].includes(rawExt) ? rawExt : 'jpg';
       const fn = `foto_${String(i + 1).padStart(3, '0')}_${Date.now()}.${ext}`;
 
       await uploadFile(token, folderPath, fn, p.file, STATE.uploadAbortController.signal);
@@ -666,8 +681,9 @@ async function resolveDriveId(token) {
 
 async function ensureFolder(token, auftragNr) {
   const driveId = await resolveDriveId(token);
+  const safeNr = encodeURIComponent(auftragNr);
   const check = await fetch(
-    'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + auftragNr,
+    'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + safeNr,
     { headers: { Authorization: 'Bearer ' + token } }
   );
   if (check.status === 404) {
@@ -688,7 +704,7 @@ async function ensureFolder(token, auftragNr) {
 
 async function uploadFile(token, auftragNr, filename, file, signal) {
   const driveId = await resolveDriveId(token);
-  const path = auftragNr + '/' + filename;
+  const path = encodeURIComponent(auftragNr) + '/' + encodeURIComponent(filename);
   const url = 'https://graph.microsoft.com/v1.0/drives/' + driveId + '/root:/' + path + ':/content';
 
   const resp = await fetch(url, {
@@ -698,6 +714,15 @@ async function uploadFile(token, auftragNr, filename, file, signal) {
     signal
   });
 
+  if (resp.status === 401) {
+    sessionStorage.removeItem('bs_at');
+    sessionStorage.removeItem('bs_exp');
+    throw new Error('Sitzung abgelaufen – bitte neu anmelden');
+  }
+  if (resp.status === 429) {
+    const retryAfter = resp.headers.get('Retry-After') || '60';
+    throw new Error('Upload-Limit erreicht – bitte ' + retryAfter + ' Sekunden warten');
+  }
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error((err.error && err.error.message) || resp.statusText);
@@ -705,13 +730,11 @@ async function uploadFile(token, auftragNr, filename, file, signal) {
 }
 
 function doLogout() {
-  localStorage.removeItem('bs_at');
   localStorage.removeItem('bs_rt');
-  localStorage.removeItem('bs_exp');
   localStorage.removeItem('bs_sp_drive');
   sessionStorage.clear();
-  document.getElementById('btn-logout').classList.remove('visible');
-  showScreen('login');
+  window.location.href = 'https://login.microsoftonline.com/' + CONFIG.TENANT_ID +
+    '/oauth2/v2.0/logout?post_logout_redirect_uri=' + encodeURIComponent(CONFIG.REDIRECT);
 }
 
 function resetApp() {
